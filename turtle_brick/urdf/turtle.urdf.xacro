@@ -1,0 +1,84 @@
+<robot name="turtle" xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <link name="base_link">
+        <visual>
+            <geometry>
+                <box size="1.0 1.0 1.0"/>
+            </geometry>
+            <material name="green_mat">
+                <color rgba="0 1 0 0.5"/>
+            </material>
+        </visual>
+    </link>
+
+    <link name="stem">
+        <visual>
+            <geometry>
+                <cylinder radius="0.2" length="0.5" />
+            </geometry>
+            <material name="blue_mat">
+            <color rgba="0 0 1 0.5" />
+            </material>
+        </visual>
+    </link>
+
+    <joint name="base_to_stem" type="continuous">
+        <origin xyz="0 0 -0.75"/>
+        <axis xyz="0 0 -1"/>
+        <parent link="base_link"/>
+        <child link="stem"/>
+    </joint>
+
+    <link name="wheel">
+        <visual>
+            <origin rpy="1.571 0 0"/>
+            <geometry>
+                <cylinder radius="0.5" length="0.3"/>
+            </geometry>
+            <material name="red_mat">
+            <color rgba="1 0 0 0.5" />
+            </material>
+        </visual>
+    </link>
+
+    <joint name="stem_to_wheel" type="fixed">
+        <origin xyz="0 0 -0.75"/>
+        <parent link="stem"/>
+        <child link="wheel"/>
+    </joint>
+
+    <link name="platform_stem">
+        <visual>
+            <geometry>
+                <cylinder radius="0.1" length="1"/>
+            </geometry>
+        <material name="black_mat">
+        <color rgba="0 0 0 0.5"/>
+        </material>
+        </visual>
+    </link>
+
+    <joint name="base_to_pstem" type="fixed">
+        <origin xyz="0 0 1"/>
+        <parent link="base_link"/>
+        <child link="platform_stem"/>
+    </joint>
+
+    <link name="platform">
+        <visual>
+            <geometry>
+                <cylinder radius="1" length="0.1"/>
+            </geometry>
+            <material name="purple_mat">
+            <color rgba="1 0 1 0.5"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="pstem_to_platform" type="continuous">
+        <origin xyz="0 0 0.55"/>
+        <axis xyz="1 0 0"/>
+        <parent link="platform_stem"/>
+        <child link="platform"/>
+    </joint>
+
+</robot>

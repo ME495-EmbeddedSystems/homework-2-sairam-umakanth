@@ -5,5 +5,5 @@
     <node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui"/>
 
     <!-- rviz will enable us to see the robot -->
-    <!--node pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share turtle_brick)/view_robot.rviz"-->
+    <node pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share turtle_brick)/view_robot.rviz"/>
 </launch>
