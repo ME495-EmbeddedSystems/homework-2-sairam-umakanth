@@ -1,8 +1,20 @@
 <robot name="turtle" xmlns:xacro="http://www.ros.org/wiki/xacro">
+<xacro:property name="yaml_file" value="$(find turtle_brick)/turtle.yaml" />
+<xacro:property name="props" value="${xacro.load_yaml(yaml_file)}"/>
+<xacro:property name="b_dim" value="1"/>
+<xacro:property name="sr" value="0.2"/>
+<xacro:property name="sl" value="0.5"/>
+<xacro:property name="wr" value="${props['wheel_radius']}"/>
+<xacro:property name="wl" value="0.3"/>
+<xacro:property name="pr" value="1"/>
+<xacro:property name="pl" value="0.1"/>
+<xacro:property name="lr" value="0.1"/>
+<xacro:property name="ll" value="${props['platform_height'] - b_dim - sl - 2*wr}"/>
+
     <link name="base_link">
         <visual>
             <geometry>
-                <box size="1.0 1.0 1.0"/>
+                <box size="${b_dim} ${b_dim} ${b_dim}"/>
             </geometry>
             <material name="green_mat">
                 <color rgba="0 1 0 0.5"/>
@@ -13,7 +25,7 @@
     <link name="stem">
         <visual>
             <geometry>
-                <cylinder radius="0.2" length="0.5" />
+                <cylinder radius="${sr}" length="${sl}" />
             </geometry>
             <material name="blue_mat">
             <color rgba="0 0 1 0.5" />
@@ -22,7 +34,7 @@
     </link>
 
     <joint name="base_to_stem" type="continuous">
-        <origin xyz="0 0 -0.75"/>
+        <origin xyz="0 0 ${-1/2*(b_dim+sl)}"/>
         <axis xyz="0 0 -1"/>
         <parent link="base_link"/>
         <child link="stem"/>
@@ -32,7 +44,7 @@
         <visual>
             <origin rpy="1.571 0 0"/>
             <geometry>
-                <cylinder radius="0.5" length="0.3"/>
+                <cylinder radius="${wr}" length="${wl}"/>
             </geometry>
             <material name="red_mat">
             <color rgba="1 0 0 0.5" />
@@ -40,8 +52,9 @@
         </visual>
     </link>
 
-    <joint name="stem_to_wheel" type="fixed">
-        <origin xyz="0 0 -0.75"/>
+    <joint name="stem_to_wheel" type="continuous">
+        <origin xyz="0 0 ${-1/2*sl-wr}"/>
+        <axis xyz="0 1 0"/>
         <parent link="stem"/>
         <child link="wheel"/>
     </joint>
@@ -49,7 +62,7 @@
     <link name="platform_stem">
         <visual>
             <geometry>
-                <cylinder radius="0.1" length="1"/>
+                <cylinder radius="${lr}" length="${ll}"/>
             </geometry>
         <material name="black_mat">
         <color rgba="0 0 0 0.5"/>
@@ -58,7 +71,7 @@
     </link>
 
     <joint name="base_to_pstem" type="fixed">
-        <origin xyz="0 0 1"/>
+        <origin xyz="0 0 ${1/2*(b_dim+ll)}"/>
         <parent link="base_link"/>
         <child link="platform_stem"/>
     </joint>
@@ -66,17 +79,17 @@
     <link name="platform">
         <visual>
             <geometry>
-                <cylinder radius="1" length="0.1"/>
+                <cylinder radius="${pr}" length="${pl}"/>
             </geometry>
-            <material name="purple_mat">
-            <color rgba="1 0 1 0.5"/>
-            </material>
+        <material name="purple_mat">
+        <color rgba="1 0 1 0.5"/>
+        </material>
         </visual>
     </link>
 
     <joint name="pstem_to_platform" type="continuous">
-        <origin xyz="0 0 0.55"/>
-        <axis xyz="1 0 0"/>
+        <origin xyz="0 0 ${1/2*(ll+pl)}" rpy="0 0 1.572"/>
+        <axis xyz="0 1 0"/>
         <parent link="platform_stem"/>
         <child link="platform"/>
     </joint>
