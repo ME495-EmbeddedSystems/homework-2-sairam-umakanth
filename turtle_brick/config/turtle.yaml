@@ -1,4 +1,4 @@
-platform_height: 4
+platform_height: 4.0
 wheel_radius: 0.25
 max_velocity: 1
 gravity_accel: 9.81

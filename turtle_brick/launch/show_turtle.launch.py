@@ -6,11 +6,12 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     # File paths
-    #turtle_yaml = PathJoinSubstitution([FindPackageShare("turtle_brick"), "turtle.yaml"])
+    turtle_yaml = PathJoinSubstitution([FindPackageShare("turtle_brick"), "turtle.yaml"])
     turtle_urdf_xacro = PathJoinSubstitution([FindPackageShare("turtle_brick"), "turtle.urdf.xacro"])
     rviz_config = PathJoinSubstitution([FindPackageShare("turtle_brick"), "view_robot.rviz"])
 
     return LaunchDescription([
+        
         # Turtlesim Node
         Node(
             package="turtlesim",
@@ -20,12 +21,11 @@ def generate_launch_description():
         ),
 
         # Turtle Robot Node
-        #Node(
-        #    package="turtle_brick",
-        #    executable="turtle_robot",
-        #    name="turtle_robot",
-        #    parameters=[turtle_yaml]
-        #),
+        Node(
+            package="turtle_brick",
+            executable="turtle_robot",
+            name="turtle_robot",
+        ),
         
 
         # Robot State Publisher Node
