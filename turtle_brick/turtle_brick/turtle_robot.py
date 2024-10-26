@@ -38,7 +38,7 @@ class turtle_robot(Node):
         self.cb_group = MutuallyExclusiveCallbackGroup()
         #self.state = State.STOPPED
         self.static_broadcaster = StaticTransformBroadcaster(self)
-        '''
+    
         self.declare_parameter('platform_height', 0.5)
         self.declare_parameter('wheel_radius', 0.1)
         self.declare_parameter('max_velocity', 2.0)
@@ -47,13 +47,13 @@ class turtle_robot(Node):
         wheel_radius = self.get_parameter('wheel_radius').value
         max_velocity = self.get_parameter('max_velocity').value
         gravity_accel = self.get_parameter('gravity_accel').value
-        '''
+    
 
         self.odom_base_tf = TransformStamped()
         self.odom_base_tf.header.stamp = self.get_clock().now().to_msg()
         self.odom_base_tf.header.frame_id = 'odom'
         self.odom_base_tf.child_frame_id = 'base_link'
-        self.odom_base_tf.transform.translation.z = 2*0.25 + 0.5 + 0.5
+        self.odom_base_tf.transform.translation.z = 2*wheel_radius + 0.5 + 0.5
     
 
         world_odom_tf = TransformStamped()

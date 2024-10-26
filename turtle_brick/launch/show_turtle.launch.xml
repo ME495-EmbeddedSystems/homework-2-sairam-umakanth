@@ -2,7 +2,9 @@
     <node pkg="turtlesim" exec="turtlesim_node" name="turtlesim_node">
         <param name="holonomic" value="true"/>  <!-- # -->
     </node>
-    <node pkg="turtle_brick" exec="turtle_robot" name="turtle_robot"/>
+    <node pkg="turtle_brick" exec="turtle_robot" name="turtle_robot">
+        <param from="$(find-pkg-share turtle_brick)/turtle.yaml"/>
+    </node>
 
     <node pkg="robot_state_publisher" exec="robot_state_publisher" >
         <param name="robot_description" value="$(command '$(exec-in-pkg xacro xacro) $(find-pkg-share turtle_brick)/turtle.urdf.xacro')"/>

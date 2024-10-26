@@ -4,12 +4,12 @@
 <xacro:property name="b_dim" value="1"/>
 <xacro:property name="sr" value="0.2"/>
 <xacro:property name="sl" value="0.5"/>
-<xacro:property name="wr" value="${props['wheel_radius']}"/>
+<xacro:property name="wr" value="${props['/**']['ros__parameters']['wheel_radius']}"/>
 <xacro:property name="wl" value="0.3"/>
 <xacro:property name="pr" value="1"/>
 <xacro:property name="pl" value="0.1"/>
 <xacro:property name="lr" value="0.1"/>
-<xacro:property name="ll" value="${props['platform_height'] - b_dim - sl - 2*wr}"/>
+<xacro:property name="ll" value="${props['/**']['ros__parameters']['platform_height'] - b_dim - sl - 2*wr}"/>
 
     <link name="base_link">
         <visual>
@@ -35,7 +35,7 @@
 
     <joint name="base_to_stem" type="continuous">
         <origin xyz="0 0 ${-1/2*(b_dim+sl)}"/>
-        <axis xyz="0 0 -1"/>
+        <axis xyz="0 0 -1" rpy="0 ${pi} 0"/>
         <parent link="base_link"/>
         <child link="stem"/>
     </joint>
