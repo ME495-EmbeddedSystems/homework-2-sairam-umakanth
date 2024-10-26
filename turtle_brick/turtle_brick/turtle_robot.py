@@ -17,6 +17,7 @@ from turtle_brick_interfaces.msg import Tilt
 from sensor_msgs.msg import JointState
 from tf2_ros import TransformBroadcaster
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
+from rclpy.qos import QoSProfile, QoSDurabilityPolicy
 
 '''
 class State(Enum):
@@ -62,11 +63,14 @@ class turtle_robot(Node):
         world_odom_tf.transform.translation.x = 5.4445
         world_odom_tf.transform.translation.y = 5.4445
 
+        self.joint_states = JointState()
+
         self.get_logger().info("test4")
 
         '''Creating publishers'''
-        #self.js_pub = self.create_publisher(JointState, "geometry_msgs/joint_states", 10)
-        #self.odom_pub = self.create_publisher(Odometry, "nav_msgs/odom", 10)
+        qos = QoSProfile(depth=10, durability=QoSDurabilityPolicy. TRANSIENT_LOCAL)
+        self.js_pub = self.create_publisher(JointState, "joint_states", qos)
+        #self.odom_pub = self.create_publisher(Odometry, "odom", 10)
         #self.vel_pub = self.create_publisher(Twist, "turtle1/cmd_vel", 10)
         self.base_broadcaster = TransformBroadcaster(self)
         self.base_broadcaster.sendTransform(self.odom_base_tf)
@@ -90,12 +94,17 @@ class turtle_robot(Node):
         y = 5.4445 - msg.y
         self.odom_base_tf.transform.translation.x = x
         self.odom_base_tf.transform.translation.y = y
+        self.joint_states.header.stamp = self.odom_base_tf.header.stamp
+        self.joint_states.name = ["base_to_stem","stem_to_wheel","pstem_to_platform"]
+        self.joint_states.position = [math.pi - msg.theta, 0, 0]
 
 
     def timer_callback(self):
         # Broadcast frame to base at the end of its
+        #self.get_logger().info("test2")
         self.base_broadcaster.sendTransform(self.odom_base_tf)
-        
+        self.js_pub.publish(self.joint_states)
+        #self.get_logger().info("test3")
 
 
 def main(args=None):

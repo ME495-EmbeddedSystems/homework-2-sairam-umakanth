@@ -7,7 +7,7 @@
     <node pkg="robot_state_publisher" exec="robot_state_publisher" >
         <param name="robot_description" value="$(command '$(exec-in-pkg xacro xacro) $(find-pkg-share turtle_brick)/turtle.urdf.xacro')"/>
     </node>
-    <node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui"/>
+    <!--<node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui"/>--> 
 
     <!-- rviz will enable us to see the robot -->
     <node pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share turtle_brick)/view_robot.rviz"/>
