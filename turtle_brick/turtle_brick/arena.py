@@ -1,10 +1,13 @@
-from geometry_msgs.msg import TransformStamped
+from geometry_msgs.msg import TransformStamped, Point
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSProfile
-from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 from visualization_msgs.msg import Marker, MarkerArray
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+from std_srvs.srv import Empty
+from turtle_brick.physics import World
+from turtle_brick_interfaces.srv import PlacePoint
+from tf2_ros.transform_broadcaster import TransformBroadcaster
 
 
 class arena(Node):
@@ -12,10 +15,14 @@ class arena(Node):
         super().__init__('arena')
         self.declare_parameter('max_velocity', 2.0)
         self.declare_parameter('gravity_accel', 9.81)
-        self.declare_parameter('brick_pose',[])
+        self.declare_parameter('wheel_radius',0.5)
         self.max_velocity = self.get_parameter('max_velocity').value
         self.gravity_accel = self.get_parameter('gravity_accel').value
-        self.brick_pose = self.get_parameter('brick_pose').value
+        self.wheel_radius = self.get_parameter('wheel_radius').value
+        self.brick_initialization = Point()
+        self.brick_initialization.x = 2.0
+        self.brick_initialization.y = 2.0
+        self.brick_initialization.z = 6.0
         # Define QoS settings and callback group
         self.cb_group = MutuallyExclusiveCallbackGroup()
         markerQoS = QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
@@ -76,19 +83,30 @@ class arena(Node):
         # Publish the MarkerArray
         self.marker_pub.publish(marker_array)
 
+        self.world_to_brick = TransformStamped()
+        self.world_to_brick.header.stamp = self.get_clock().now().to_msg()
+        self.world_to_brick.header.frame_id = 'world'
+        self.world_to_brick.child_frame_id = 'brick'
+        self.world_to_brick.transform.translation.x = self.brick_initialization.x
+        self.world_to_brick.transform.translation.y = self.brick_initialization.y
+        self.world_to_brick.transform.translation.z = self.brick_initialization.z
+        self.brick_tf_broadcaster = TransformBroadcaster(self)
+        self.brick_tf_broadcaster.sendTransform(self.world_to_brick)
+
         self.brick_pub = self.create_publisher(Marker, "brick/visualization_marker", markerQoS)
+        self.get_logger().info("brick test 1")
         self.brick = Marker()
-        self.brick.header.frame_id = 'world'
-        self.brick.header.stamp = self.get_clock().now().to_msg()
+        self.brick.header.frame_id = 'brick'
+        self.brick.header.stamp = self.world_to_brick.header.stamp
         self.brick.id = 5
         self.brick.type = Marker.CUBE
         self.brick.action = Marker.ADD
         self.brick.scale.x = 0.4
         self.brick.scale.y = 0.2
         self.brick.scale.z = 0.2
-        self.brick.pose.position.x = 3.0
-        self.brick.pose.position.y = 5.445
-        self.brick.pose.position.z = 8.0
+        self.brick.pose.position.x = 0.0
+        self.brick.pose.position.y = 0.0
+        self.brick.pose.position.z = 0.0
         self.brick.pose.orientation.x = 1.0
         self.brick.pose.orientation.y = 0.0
         self.brick.pose.orientation.z = 0.0
@@ -98,12 +116,43 @@ class arena(Node):
         self.brick.color.b = 0.0
         self.brick.color.a = 1.0
         self.brick_pub.publish(self.brick)
+
         # Timer 
-        timer_period = 1.0 / 250.0
+        freq = 250.0
+        timer_period = 1.0 / freq
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
+        self.world = World(brick=self.brick_initialization, gravity=self.gravity_accel, radius=self.wheel_radius, dt=timer_period)
+        self.place_service = self.create_service(PlacePoint, 'place_point', self.place_callback)
+        self.load_service = self.create_service(Empty, 'drop', self.drop_callback)
+        self.falling = False
+
+    def place_callback(self, request, response):
+        location = request.place_point
+        self.world.brick = location
+        self.brick_falling = False
+        self.update_brick_marker()
+        response.success = True
+        return response
+
+    def drop_callback(self, request, response):
+        self.falling = True
+        return response
+    
+    def update_brick_marker(self):
+        self.world_to_brick.header.stamp = self.get_clock().now().to_msg()
+        self.world_to_brick.transform.translation.x = float(self.world.brick.x)
+        self.world_to_brick.transform.translation.y = float(self.world.brick.y)
+        self.world_to_brick.transform.translation.z = float(self.world.brick.z)
+        self.brick.header.stamp = self.world_to_brick.header.stamp
+
     def timer_callback(self):
+        if self.falling:
+            self.world.drop()
+            self.update_brick_marker()
+        self.brick_tf_broadcaster.sendTransform(self.world_to_brick)
         self.brick_pub.publish(self.brick)
+        
 
 def arena_entry(args=None):
     '''main function'''

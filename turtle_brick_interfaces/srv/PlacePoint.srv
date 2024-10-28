@@ -1,0 +1,3 @@
+geometry_msgs/Point place_point # Point coordinates for placing brick
+---
+bool success
