@@ -1,52 +1,60 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import Command, PathJoinSubstitution
-from launch_ros.actions import Node
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
+from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution 
 from launch_ros.substitutions import FindPackageShare
+from launch_ros.actions import Node
+from launch.conditions import IfCondition
 
+########### Begin Citation [1] ##################
 def generate_launch_description():
-    # File paths
-    turtle_yaml = PathJoinSubstitution([FindPackageShare("turtle_brick"), "turtle.yaml"])
-    turtle_urdf_xacro = PathJoinSubstitution([FindPackageShare("turtle_brick"), "turtle.urdf.xacro"])
-    rviz_config = PathJoinSubstitution([FindPackageShare("turtle_brick"), "view_robot.rviz"])
+    # Declare the 'use_jsp' argument
+    use_jsp_arg = DeclareLaunchArgument(
+        'use_jsp',
+        default_value='gui',
+        description="Controls the joint state publisher: 'gui' for joint_state_publisher_gui, 'jsp' for joint_state_publisher, 'none' for no publisher."
+    )
+
+    # Path to turtle_brick package share
+    turtle_brick_share = FindPackageShare('turtle_brick')
+
+    # Conditional nodes based on use_jsp argument
+    jsp_gui_node = Node(
+        package='joint_state_publisher_gui',
+        executable='joint_state_publisher_gui',
+        condition=IfCondition(LaunchConfiguration('use_jsp').perform() == 'gui')
+    )
+
+    jsp_node = Node(
+        package='joint_state_publisher',
+        executable='joint_state_publisher',
+        condition=IfCondition(LaunchConfiguration('use_jsp').perform() == 'jsp')
+    )
+
+############# End Citation [1] ################
+    # Robot state publisher node with xacro file for robot description
+    robot_state_publisher_node = Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        parameters=[{
+            'robot_description': Command([
+                PathJoinSubstitution([FindPackageShare('xacro'), 'xacro']),
+                ' ',
+                PathJoinSubstitution([turtle_brick_share, 'turtle.urdf.xacro'])
+            ])
+        }]
+    )
+
+    # RViz node with specified configuration file
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        arguments=['-d', PathJoinSubstitution([turtle_brick_share, 'view_robot.rviz'])]
+    )
 
     return LaunchDescription([
-        
-        # Turtlesim Node
-        Node(
-            package="turtlesim",
-            executable="turtlesim_node",
-            name="turtlesim_node",
-            parameters=[{"holonomic": True}]
-        ),
-
-        # Turtle Robot Node
-        Node(
-            package="turtle_brick",
-            executable="turtle_robot",
-            name="turtle_robot",
-        ),
-        
-
-        # Robot State Publisher Node
-        Node(
-            package="robot_state_publisher",
-            executable="robot_state_publisher",
-            parameters=[{
-                "robot_description": Command(["xacro ", turtle_urdf_xacro])
-            }]
-        ),
-
-        # Joint State Publisher GUI Node
-        Node(
-            package="joint_state_publisher_gui",
-            executable="joint_state_publisher_gui"
-        ),
-
-        # RViz2 Node
-        Node(
-            package="rviz2",
-            executable="rviz2",
-            arguments=["-d", rviz_config]
-        ),
+        use_jsp_arg,
+        jsp_gui_node,
+        jsp_node,
+        robot_state_publisher_node,
+        rviz_node,
     ])

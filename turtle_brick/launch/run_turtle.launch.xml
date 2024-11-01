@@ -1,0 +1,12 @@
+<launch>
+    <arg name="use_jsp" default="gui" description="Controls the joint state publisher: 'gui' for joint_state_publisher_gui, 'jsp' for joint_state_publisher, 'none' for no publisher."/>
+    <node pkg="turtlesim" exec="turtlesim_node" name="turtlesim_node">
+        <param name="holonomic" value="true"/>  <!-- # -->
+    </node>
+    <node pkg="turtle_brick" exec="turtle_robot" name="turtle_robot">
+        <param from="$(find-pkg-share turtle_brick)/turtle.yaml"/>
+    </node>
+    <include file="$(find-pkg-share turtle_brick)/show_turtle.launch.xml">
+        <arg name="use_jsp" value="$(var use_jsp)"/>
+    </include>
+</launch>

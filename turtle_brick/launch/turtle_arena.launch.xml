@@ -1,0 +1,13 @@
+<launch>
+<arg name="use_jsp" default="gui" description="Controls the joint state publisher: 'gui' for joint_state_publisher_gui, 'jsp' for joint_state_publisher, 'none' for no publisher."/>
+    <include file="$(find-pkg-share turtle_brick)/run_turtle.launch.xml">
+        <arg name="use_jsp" value="$(var use_jsp)"/>
+    </include>
+    <node pkg="turtle_brick" exec="arena" output="screen">
+        <param from="$(find-pkg-share turtle_brick)/turtle.yaml"/>
+    </node>
+    <node pkg="turtle_brick" exec="catcher" name="catcher">
+        <param from="$(find-pkg-share turtle_brick)/turtle.yaml"/>
+    </node>
+    <node pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share turtle_brick)/view_robot.rviz"/>
+</launch>

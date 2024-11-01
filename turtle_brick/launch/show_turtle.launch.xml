@@ -1,17 +1,11 @@
 <launch>
-    <node pkg="turtlesim" exec="turtlesim_node" name="turtlesim_node">
-        <param name="holonomic" value="true"/>  <!-- # -->
-    </node>
-    <node pkg="turtle_brick" exec="turtle_robot" name="turtle_robot">
-        <param from="$(find-pkg-share turtle_brick)/turtle.yaml"/>
-    </node>
-    <node pkg="turtle_brick" exec="arena" output="screen"/>
-
+    <arg name="use_jsp" default="gui" description="Controls the joint state publisher: 'gui' for joint_state_publisher_gui, 'jsp' for joint_state_publisher, 'none' for no publisher."/>
+    <!--#############Begin Citation [2]###################-->
+    <node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui" if="$(eval '\'$(var use_jsp)\'==\'gui\'')"/>
+    <node pkg="joint_state_publisher" exec="joint_state_publisher" if="$(eval '\'$(var use_jsp)\'==\'jsp\'')"/>
+    <!--#############End Citation [2]###################-->
     <node pkg="robot_state_publisher" exec="robot_state_publisher" >
         <param name="robot_description" value="$(command '$(exec-in-pkg xacro xacro) $(find-pkg-share turtle_brick)/turtle.urdf.xacro')"/>
     </node>
-    <!--<node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui"/>--> 
-
-    <!-- rviz will enable us to see the robot -->
     <node pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share turtle_brick)/view_robot.rviz"/>
 </launch>

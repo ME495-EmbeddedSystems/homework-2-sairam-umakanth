@@ -70,6 +70,7 @@ class arena(Node):
         self.brick_initialization.x = 5.445
         self.brick_initialization.y = 7.0
         self.brick_initialization.z = 7.0
+        ############# Begin Citation [1] #########################
         # Define QoS settings and callback group
         self.cb_group = MutuallyExclusiveCallbackGroup()
         markerQoS = QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
@@ -129,6 +130,7 @@ class arena(Node):
 
         # Publish the MarkerArray
         self.marker_pub.publish(marker_array)
+        ################### End Citation [1] ############################
 
         self.world_to_brick = TransformStamped()
         self.world_to_brick.header.stamp = self.get_clock().now().to_msg()
@@ -207,11 +209,7 @@ class arena(Node):
             self.platform_to_brick = self.buffer.lookup_transform('platform','brick',rclpy.time.Time().to_msg())
             self.world_to_platform = self.buffer.lookup_transform('world','platform',rclpy.time.Time().to_msg())
             #self.base_to_odom = self.buffer.lookup_transform('base','odom',rclpy.time.Time().to_msg())
-            self.get_logger().info('l1093413')
-            #elif self.state == State.FALLING and self.curr_height > 0.1:
-                #self.state = State.WAITING
-            #elif self.curr_height == 0.1:
-                #self.state = State.RETURN
+
             if self.state == State.NOACTION:
                 self.get_logger().info("No action")
                 pass

@@ -12,6 +12,10 @@ setup(
         ('share/' + package_name, ['package.xml', 
                                    'launch/show_turtle.launch.xml',
                                    'launch/show_turtle.launch.py',
+                                   'launch/run_turtle.launch.xml',
+                                   'launch/turtle_arena.launch.xml',
+                                   'launch/run_turtle.launch.py',
+                                   'launch/turtle_arena.launch.py',
                                    'urdf/turtle.urdf.xacro',
                                    'config/view_turtle.rviz',
                                    'config/turtle.yaml']),
@@ -20,13 +24,14 @@ setup(
     zip_safe=True,
     maintainer='sairamu02',
     maintainer_email='sairamumakanth2028@u.northwestern.edu',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    description='Operates a robot turtle and catches a brick that is falling',
+    license='Apache 4.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             "turtle_robot = turtle_brick.turtle_robot:main",
-            "arena = turtle_brick.arena:arena_entry"
+            "arena = turtle_brick.arena:arena_entry",
+            "catcher = turtle_brick.catcher:catcher_entry"
         ],
     },
 )
