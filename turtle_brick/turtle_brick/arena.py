@@ -1,3 +1,25 @@
+'''
+Maintains arena characteristics. Spawns arena walls and brick, drops brick and manages brick/world physics. Contains
+two services to drop the brick and place the brick at anywhere in the space of the arena in rviz
+
+PUBLISHERS:
+walls/visualization_marker_array MarkerArray    :   Marker array for arena walls
+brick/visualization_marker                      :   Marker for brick
+
+SUBSCRIBERS:
+tilt Tilt                                       :   Tilt angle for platform joint
+
+SERVICES OFFERED:
+place_point PlacePoint                          :   Places turtle at a point provided by user
+drop Empty                                      :   Drops brick
+
+PARAMETERS:
+platform_height double                          :   Height of platform above the ground 
+gravity_accel double                            :   Acceleration due to gravity
+wheel_radius double                             :   Wheel radius
+max_velocity double                             :   Max velocity of turtle and robot 
+'''
+
 from geometry_msgs.msg import TransformStamped, Point
 import rclpy
 from rclpy.node import Node
@@ -8,21 +30,29 @@ from std_srvs.srv import Empty
 from turtle_brick.physics import World
 from turtle_brick_interfaces.srv import PlacePoint
 from tf2_ros.transform_broadcaster import TransformBroadcaster
-
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
+import tf2_ros
+from rclpy.duration import Duration
 
 class arena(Node):
     def __init__(self): 
         super().__init__('arena')
+        self.buffer = Buffer()
+        self.listener = TransformListener(self.buffer, self)
+
         self.declare_parameter('max_velocity', 2.0)
         self.declare_parameter('gravity_accel', 9.81)
         self.declare_parameter('wheel_radius',0.5)
+        self.declare_parameter('platform_height', 1.0)
         self.max_velocity = self.get_parameter('max_velocity').value
         self.gravity_accel = self.get_parameter('gravity_accel').value
         self.wheel_radius = self.get_parameter('wheel_radius').value
+        self.platform_height = self.get_parameter('platform_height').value
         self.brick_initialization = Point()
-        self.brick_initialization.x = 2.0
-        self.brick_initialization.y = 2.0
-        self.brick_initialization.z = 6.0
+        self.brick_initialization.x = 5.445
+        self.brick_initialization.y = 7.0
+        self.brick_initialization.z = 7.0
         # Define QoS settings and callback group
         self.cb_group = MutuallyExclusiveCallbackGroup()
         markerQoS = QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
@@ -127,6 +157,8 @@ class arena(Node):
         self.load_service = self.create_service(Empty, 'drop', self.drop_callback)
         self.falling = False
 
+
+
     def place_callback(self, request, response):
         location = request.place_point
         self.world.brick = location
@@ -147,9 +179,38 @@ class arena(Node):
         self.brick.header.stamp = self.world_to_brick.header.stamp
 
     def timer_callback(self):
+        #try:
+
+            #self.get_logger().info("another test")
+            # get the latest transform between left and right
+            # (rclpy.time.Time() means get the latest information)
+            #self.get_logger().info(f'in timer callback...  self.falling: {self.falling}')
+
+        #self.platform_to_brick = self.buffer.lookup_transform('platform','brick',rclpy.time.Time().to_msg())
+            #self.get_logger().info('l1093413')
+
+
         if self.falling:
+            #self.get_logger().info("t1")
+            #if self.platform_to_brick.transform.translation.x < 0.3 and self.platform_to_brick.transform.translation.y < 0.3:
+                    #self.get_logger().info("t2")
+                #self.falling = False
+                #else: 
+            self.get_logger().info("t3")
             self.world.drop()
             self.update_brick_marker()
+        #except tf2_ros.LookupException as e:
+            # the frames don't exist yet
+            #self.get_logger().info(f'Lookup exception: {e}')
+        #except tf2_ros.ConnectivityException as e:
+            # the tf tree has a disconnection
+            #self.get_logger().info(f'Connectivity exception: {e}')
+        #except tf2_ros.ExtrapolationException as e:
+            # the times are two far apart to extrapolate
+            #self.get_logger().info(f'Extrapolation exception: {e}')
+        #finally:
+            #self.get_logger().info("in finally")
+        #self.world_to_brick.header.stamp = self.get_clock().now().to_msg()
         self.brick_tf_broadcaster.sendTransform(self.world_to_brick)
         self.brick_pub.publish(self.brick)
         
