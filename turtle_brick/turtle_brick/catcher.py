@@ -61,7 +61,7 @@ class Catcher(Node):
         self.max_velocity = self.get_parameter('max_velocity').value
         self.gravity_accel = self.get_parameter('gravity_accel').value
 
-        self.prev_pose = -9000.0
+        self.prev_height = -9000.0
         self.curr_height = -9000.0
 
         # The buffer stores received tf frames
@@ -83,26 +83,39 @@ class Catcher(Node):
             #self.get_logger().info("another test 2")
             self.platform_to_brick = self.buffer.lookup_transform('platform', 'brick',rclpy.time.Time().to_msg())  
             self.world_to_brick = self.buffer.lookup_transform('world', 'brick',rclpy.time.Time().to_msg())  
+            self.world_to_odom = self.buffer.lookup_transform('world','odom', rclpy.time.Time().to_msg())
+            self.world_to_platform = self.buffer.lookup_transform('world','platform', rclpy.time.Time().to_msg())
             
             self.prev_height = self.curr_height
             self.curr_height = self.platform_to_brick.transform.translation.z
             goal_pose = PoseStamped()
             #self.get_logger().info(f'{self.curr_height}, {self.prev_height}')
-            if self.prev_height == self.curr_height:
+            if self.prev_height == self.curr_height and self.state == State.NOACTION:
                 self.state = State.NOACTION
-            elif 0.0 < abs(self.prev_height-self.curr_height) <= 0.4:
+            elif 0.2 < abs(self.prev_height-self.curr_height) <= 0.4:
+                self.get_logger().info(f'{abs(self.prev_height-self.curr_height)}')
                 self.state = State.FALLING
                 #self.get_logger().info('pre falling test')
-            elif self.curr_height == 0.0:
-                self.state = State.RETURN
-            elif self.base_to_odom.transform.translation.x == 0 and self.base_to_odom.transform.translation.y == 0:
+            elif (self.platform_to_brick.transform.translation.x < 0.3
+                and self.platform_to_brick.transform.translation.y < 0.3
+                and self.platform_to_brick.transform.translation.z < 0.5):
+                    #self.get_logger().info("t2")
+                    self.state = State.RETURN
+            elif (self.state == State.RETURN and
+                0.5 > abs(self.base_to_odom.transform.translation.x) >= 0.0 
+                and 0.5 > abs(self.base_to_odom.transform.translation.y) >= 0.0):
                 self.state = State.DEPOSIT
             
             if self.state == State.NOACTION:
                 tilt = Tilt()
                 tilt.tilt_angle = 0.0
                 self.tilt_pub.publish(tilt)
-                pass
+                self.get_logger().info("No action")
+                #goal_pose.header.stamp = self.get_clock().now().to_msg()
+                #goal_pose.pose.position.x = self.world_to_platform.transform.translation.x
+                #goal_pose.pose.position.y = self.world_to_platform.transform.translation.y
+                #self.goal_pose_pub.publish(goal_pose)
+                #pass
             elif self.state == State.FALLING:
                 #self.get_logger().info("falling test")
                 dist = self.get_dist(self.platform_to_brick.transform)
@@ -110,7 +123,7 @@ class Catcher(Node):
                 if self.curr_height >= 0.0:
                     fall_time = (self.curr_height*2/self.gravity_accel)**0.5
                 else:
-                    fall_time = 0
+                    fall_time = 0.0
                 self.get_logger().info(f'{time_taken},{fall_time}')
                 if time_taken < fall_time:
                     goal_pose.header.stamp = self.get_clock().now().to_msg()
@@ -118,17 +131,21 @@ class Catcher(Node):
                     goal_pose.pose.position.y = self.world_to_brick.transform.translation.y
                     self.goal_pose_pub.publish(goal_pose)
                 else:
-                    self.state = State.NOACTION
                     self.publish_unreachable_marker()
+                    self.state = State.NOACTION
+                self.get_logger().info("Falling")
+                    #self.state = State.NOACTION
             elif self.state == State.RETURN:
                 goal_pose.header.stamp = self.get_clock().now().to_msg()
-                goal_pose.pose.position.x = self.world_to_brick.transform.translation.x
-                goal_pose.pose.position.y = self.world_to_brick.transform.translation.y
+                goal_pose.pose.position.x = self.world_to_odom.transform.translation.x
+                goal_pose.pose.position.y = self.world_to_odom.transform.translation.y
                 self.goal_pose_pub.publish(goal_pose)
+                self.get_logger().info("Return")
             elif self.state == State.DEPOSIT:
                 tilt = Tilt()
                 tilt.tilt_angle = 0.7854
                 self.tilt_pub.publish(tilt)
+                self.get_logger().info("Deposit")
 
         except tf2_ros.LookupException as e:
             # the frames don't exist yet
@@ -158,7 +175,7 @@ class Catcher(Node):
         marker.header.stamp = self.get_clock().now().to_msg()
         
         marker.ns = "catcher"
-        marker.id = 0
+        marker.id = 9
         marker.type = Marker.TEXT_VIEW_FACING
         marker.action = Marker.ADD
         
@@ -176,7 +193,7 @@ class Catcher(Node):
         marker.color.a = 1.0
         
         # Set the lifetime to 3 seconds
-        marker.lifetime = DurationMsg(sec=3)
+        marker.lifetime.sec = 3
         
         # Publish the marker
         self.marker_pub.publish(marker)

@@ -77,6 +77,8 @@ class turtle_robot(Node):
         self.joint_states.header.stamp = self.get_clock().now().to_msg()
         self.joint_states.name = ["base_to_stem","stem_to_wheel","pstem_to_platform"]
         self.joint_states.position = [0, 0, 0]
+        self.tilt = Tilt()
+        self.wheel_orientation = 0.0
 
         self.get_logger().info("test4")
 
@@ -96,6 +98,7 @@ class turtle_robot(Node):
 
         ''' Creating a timer with a callback'''    
         timer_period = 1.0 / 100.0
+        self.dt = timer_period
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
     def goal_sub_callback(self,msg):
@@ -109,6 +112,7 @@ class turtle_robot(Node):
         '''
         x = -(msg.pose.position.x - self.curr_pose.x)
         y = -(msg.pose.position.y - self.curr_pose.y)
+        self.wheel_orientation = math.atan2(y,x)
         dist = ((x)**2 + (y)**2)**0.5
         if dist < 0.3:
             self.cmd_vel.linear.x = 0.0
@@ -118,10 +122,6 @@ class turtle_robot(Node):
             self.cmd_vel.linear.y = -self.max_velocity * math.sin(math.atan2(y,x))
         
         self.vel_pub.publish(self.cmd_vel)
-
-        self.joint_states.header.stamp = self.get_clock().now().to_msg()
-        self.joint_states.name = ["base_to_stem","stem_to_wheel","pstem_to_platform"]
-        self.joint_states.position = [float(math.pi - msg.pose.orientation.z), 0.0, 0.0]
         #self.get_logger().info("t5")
         #self.joint_states.velocity = [0, self.max_velocity/self.wheel_radius, 0]
 
@@ -135,10 +135,7 @@ class turtle_robot(Node):
         ARGS:
         msg: Tilt angle of platform joint
         '''
-        self.joint_states.header.stamp = self.get_clock().now().to_msg()
-        self.joint_states.name = ["base_to_stem","stem_to_wheel","pstem_to_platform"]
-        self.joint_states.position = [0.0, msg.tilt_angle, 0.0]
-        self.joint_states.velocity = [0, 0.0, 0]
+        self.tilt = msg
         
 
     def pose_sub_callback(self,msg):
@@ -172,6 +169,9 @@ class turtle_robot(Node):
         self.joint_states.header.stamp = self.get_clock().now().to_msg()
         self.odom_base_tf.header.stamp = self.get_clock().now().to_msg()
         self.odom.header.stamp = self.get_clock().now().to_msg()
+        self.joint_states.name = ["base_to_stem","stem_to_wheel","pstem_to_platform"]
+        self.joint_states.position = [
+            self.wheel_orientation, self.max_velocity/self.wheel_radius*self.dt, self.tilt.tilt_angle]
         self.base_broadcaster.sendTransform(self.odom_base_tf)
         self.js_pub.publish(self.joint_states)
         self.odom_pub.publish(self.odom)

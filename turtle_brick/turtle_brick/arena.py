@@ -22,7 +22,9 @@ max_velocity double                             :   Max velocity of turtle and r
 
 from geometry_msgs.msg import TransformStamped, Point
 import rclpy
+import math
 from rclpy.node import Node
+from enum import Enum, auto
 from rclpy.qos import QoSDurabilityPolicy, QoSProfile
 from visualization_msgs.msg import Marker, MarkerArray
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -35,11 +37,26 @@ from tf2_ros.transform_listener import TransformListener
 import tf2_ros
 from rclpy.duration import Duration
 
+class State(Enum):
+    '''
+    Current state of the system.
+    Determines what the main timer function should be doing on each iteration
+    '''
+    NOACTION = auto(), # Brick has not dropped yet, no action
+    FALLING = auto(),  # Brick is falling, robot drives to brick 
+    WAITING = auto(),  # Waiting for brick to fall to platform, if robot reaches brick
+    RETURN = auto(),   # Brick is on platform, robot returns to origin
+    DEPOSIT = auto(),  # Robot is at origin, deposits brick
+
 class arena(Node):
     def __init__(self): 
         super().__init__('arena')
         self.buffer = Buffer()
+        self.state = State.NOACTION
         self.listener = TransformListener(self.buffer, self)
+        self.prev_height = -9000.0
+        self.curr_height = -9000.0
+        self.slide_vel = 0.0
 
         self.declare_parameter('max_velocity', 2.0)
         self.declare_parameter('gravity_accel', 9.81)
@@ -150,6 +167,7 @@ class arena(Node):
         # Timer 
         freq = 250.0
         timer_period = 1.0 / freq
+        self.dt = timer_period
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
         self.world = World(brick=self.brick_initialization, gravity=self.gravity_accel, radius=self.wheel_radius, dt=timer_period)
@@ -168,7 +186,7 @@ class arena(Node):
         return response
 
     def drop_callback(self, request, response):
-        self.falling = True
+        self.state = State.FALLING
         return response
     
     def update_brick_marker(self):
@@ -179,39 +197,81 @@ class arena(Node):
         self.brick.header.stamp = self.world_to_brick.header.stamp
 
     def timer_callback(self):
-        #try:
+        try:
 
             #self.get_logger().info("another test")
             # get the latest transform between left and right
             # (rclpy.time.Time() means get the latest information)
             #self.get_logger().info(f'in timer callback...  self.falling: {self.falling}')
 
-        #self.platform_to_brick = self.buffer.lookup_transform('platform','brick',rclpy.time.Time().to_msg())
-            #self.get_logger().info('l1093413')
-
-
-        if self.falling:
-            #self.get_logger().info("t1")
-            #if self.platform_to_brick.transform.translation.x < 0.3 and self.platform_to_brick.transform.translation.y < 0.3:
+            self.platform_to_brick = self.buffer.lookup_transform('platform','brick',rclpy.time.Time().to_msg())
+            self.world_to_platform = self.buffer.lookup_transform('world','platform',rclpy.time.Time().to_msg())
+            #self.base_to_odom = self.buffer.lookup_transform('base','odom',rclpy.time.Time().to_msg())
+            self.get_logger().info('l1093413')
+            #elif self.state == State.FALLING and self.curr_height > 0.1:
+                #self.state = State.WAITING
+            #elif self.curr_height == 0.1:
+                #self.state = State.RETURN
+            if self.state == State.NOACTION:
+                self.get_logger().info("No action")
+                pass
+            elif self.state == State.FALLING:
+                #self.get_logger().info("t1")
+                if (self.platform_to_brick.transform.translation.x < 0.3
+                and self.platform_to_brick.transform.translation.y < 0.3
+                and self.platform_to_brick.transform.translation.z < 0.5):
                     #self.get_logger().info("t2")
-                #self.falling = False
-                #else: 
-            self.get_logger().info("t3")
-            self.world.drop()
-            self.update_brick_marker()
-        #except tf2_ros.LookupException as e:
+                    self.state = State.RETURN
+                elif self.platform_to_brick.transform.translation.z < -self.platform_height:
+                    self.state = State.NOACTION
+                self.get_logger().info("Falling")
+                    #self.get_logger().info("t3")
+                self.world.drop()
+            elif self.state == State.RETURN:
+                self.world_to_brick.transform.translation.z = self.world_to_platform.transform.translation.z + 0.1
+                self.world.brick.z = self.world_to_brick.transform.translation.z
+                self.world_to_brick.transform.translation.x = (
+                    self.world_to_platform.transform.translation.x + self.platform_to_brick.transform.translation.x
+                )
+                self.world.brick.x = self.world_to_brick.transform.translation.x
+                self.world_to_brick.transform.translation.y = (
+                    self.world_to_platform.transform.translation.y + self.platform_to_brick.transform.translation.y
+                )            
+                self.world.brick.y = self.world_to_brick.transform.translation.y
+                if (
+                5.445+0.5 > self.world_to_platform.transform.translation.x >= 5.445
+                and 5.445+0.5 > self.world_to_platform.transform.translation.y >= 5.445):
+                    self.state = State.DEPOSIT
+                self.get_logger().info("Return")
+            elif self.state == State.DEPOSIT:
+                self.slide_vel += abs(self.gravity_accel*self.dt)
+                if self.world.brick.y < self.world_to_platform.transform.translation.y + 1.0:
+                    self.world.brick.z -= self.slide_vel * math.sin(0.7854)
+                    self.world.brick.y += self.slide_vel * math.cos(0.7854)
+                else:
+                    pass
+                self.get_logger().info("desposit")
+                pass
+            self.world_to_platform.header.stamp = self.get_clock().now().to_msg()
+            #self.base_to_odom.header.stamp = self.get_clock.now().to_msg()
+            self.platform_to_brick.header.stamp = self.get_clock().now().to_msg()
+            
+
+        except tf2_ros.LookupException as e:
             # the frames don't exist yet
-            #self.get_logger().info(f'Lookup exception: {e}')
-        #except tf2_ros.ConnectivityException as e:
+            self.get_logger().info(f'Lookup exception: {e}')
+        except tf2_ros.ConnectivityException as e:
             # the tf tree has a disconnection
-            #self.get_logger().info(f'Connectivity exception: {e}')
-        #except tf2_ros.ExtrapolationException as e:
+            self.get_logger().info(f'Connectivity exception: {e}')
+        except tf2_ros.ExtrapolationException as e:
             # the times are two far apart to extrapolate
-            #self.get_logger().info(f'Extrapolation exception: {e}')
-        #finally:
-            #self.get_logger().info("in finally")
-        #self.world_to_brick.header.stamp = self.get_clock().now().to_msg()
+            self.get_logger().info(f'Extrapolation exception: {e}')
+        finally:
+            self.get_logger().info("in finally")
+        self.world_to_brick.header.stamp = self.get_clock().now().to_msg()
         self.brick_tf_broadcaster.sendTransform(self.world_to_brick)
+        
+        self.update_brick_marker()
         self.brick_pub.publish(self.brick)
         
 
