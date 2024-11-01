@@ -1,3 +1,4 @@
+############# Begin Citation [1] #####################3
 import pytest
 from turtle_brick.physics import World
 from geometry_msgs.msg import Point
@@ -31,3 +32,4 @@ def test_drop(world_instance):
 def test_gravity_effect(world_instance):
     world_instance.drop()
     assert world_instance.velocity < 0, "Velocity should be negative after first drop under gravity."
+################### End Citation [1] #####################
