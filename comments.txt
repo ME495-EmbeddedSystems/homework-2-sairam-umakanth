@@ -1,0 +1,4 @@
+Forgot to put the resource/ directory and files in git
+Tests fail
+Brick being caught appears glitchy (seems to fall below the platform then be raised up)
+Some comments in launchfiles

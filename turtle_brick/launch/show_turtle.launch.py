@@ -8,6 +8,7 @@ from launch.conditions import IfCondition
 ########### Begin Citation [1] ##################
 def generate_launch_description():
     # Declare the 'use_jsp' argument
+    # Not declarative style
     use_jsp_arg = DeclareLaunchArgument(
         'use_jsp',
         default_value='gui',
@@ -21,7 +22,7 @@ def generate_launch_description():
     jsp_gui_node = Node(
         package='joint_state_publisher_gui',
         executable='joint_state_publisher_gui',
-        condition=IfCondition(LaunchConfiguration('use_jsp').perform() == 'gui')
+        condition=IfCondition(LaunchConfiguration('use_jsp').perform() == 'gui') # no need for .perform()
     )
 
     jsp_node = Node(

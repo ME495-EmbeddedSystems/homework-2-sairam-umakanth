@@ -3,12 +3,15 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogI
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-import os
+import os # no need for this use PathJoinSubstitution
 
 ########## Begin Citation [1] #################
 def generate_launch_description():
     # Define the path to the package share
-    turtle_brick_share = FindPackageShare('turtle_brick').find('turtle_brick')
+# There are many variable definitions here, making this not a "declarative" launch file.
+#    all of these variable definitions are unnecessary and only used once, it is much
+#    more clear to not make variable names and instead put everything inline in the laucnh description
+    turtle_brick_share = FindPackageShare('turtle_brick').find('turtle_brick') # The .find here is not necessary
 
     # Start the turtlesim node with holonomic set to true
     turtlesim_node = Node(
@@ -28,6 +31,7 @@ def generate_launch_description():
 
     # Include the show_turtle launch file
     show_turtle_include = IncludeLaunchDescription(
+        # Unnecessary PythonLaunchDescriptionSource
         PythonLaunchDescriptionSource(os.path.join(turtle_brick_share, 'show_turtle.launch.py'))
     )
 

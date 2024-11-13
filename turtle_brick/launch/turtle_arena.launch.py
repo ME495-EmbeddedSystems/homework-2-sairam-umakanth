@@ -8,6 +8,7 @@ from launch_ros.substitutions import FindPackageShare
 ########### Begin Citation [1] #####################
 def generate_launch_description():
     # Paths to package shares and files
+    # not declarative stykle, these variable definitions are unnecessary 
     turtle_brick_share = FindPackageShare('turtle_brick')
     run_turtle_launch = PathJoinSubstitution([turtle_brick_share, 'run_turtle.launch.py'])
     turtle_config = PathJoinSubstitution([turtle_brick_share, 'turtle.yaml'])
